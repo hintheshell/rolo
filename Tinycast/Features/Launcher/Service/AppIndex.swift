@@ -69,7 +69,7 @@ struct AppEntry: Identifiable, Hashable, Sendable {
     let url: URL
     let bundleID: String?
     let kind: Kind
-    /// Extra strings matching as strongly as the name; empty for every kind but snippets.
+    /// Extra names or identifiers matching as strongly as the display name.
     var matchAliases: [String] = []
     /// Per-item symbol, for the one kind whose glyph is the user's choice. Nil elsewhere.
     var symbolName: String?
@@ -379,11 +379,17 @@ final class AppIndex {
                     ?? url.deletingPathExtension().lastPathComponent
                 let executable =
                     bundle?.object(forInfoDictionaryKey: "CFBundleExecutable") as? String
+                let metadata = cache.metadata(for: url)
+                let equivalentNames = SearchFields.usableEquivalentNames(
+                    [metadata.displayName, url.lastPathComponent].compactMap { $0 },
+                    displayName: name)
                 result.append(
                     AppEntry(
                         id: url.path, name: name, url: url, bundleID: bundleID,
                         kind: .application,
-                        alternateNames: cache.alternateNames(for: url, displayName: name),
+                        matchAliases: equivalentNames,
+                        alternateNames: SearchFields.usableAlternateNames(
+                            metadata.alternateNames, excluding: [name] + equivalentNames),
                         // A binary named after the app adds nothing the display name lacks.
                         executableName: executable.flatMap {
                             $0.caseInsensitiveCompare(name) == .orderedSame ? nil : $0

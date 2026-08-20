@@ -7,6 +7,7 @@ struct FuzzTest {
 
     struct App {
         let name: String
+        var equivalentNames: [String] = []
         var alternates: [String] = []
         var bundleID: String?
         var executable: String?
@@ -14,11 +15,15 @@ struct FuzzTest {
 
         /// Mirrors AppEntry.searchFields, including the alternate-name sanitizing the scan applies.
         var fields: SearchFields {
-            SearchFields(
-                names: [name],
+            let names =
+                [name]
+                + SearchFields.usableEquivalentNames(
+                    equivalentNames, displayName: name)
+            return SearchFields(
+                names: names,
                 userAlias: userAlias,
                 alternateNames: SearchFields.usableAlternateNames(
-                    alternates, displayName: name, fileName: name + ".app"),
+                    alternates, excluding: names),
                 bundleID: bundleID, executableName: executable)
         }
     }
@@ -41,8 +46,10 @@ struct FuzzTest {
         App(name: "App Store", bundleID: "com.apple.AppStore"),
         App(
             name: "System Settings",
+            equivalentNames: ["系统设置.app"],
             alternates: ["Preferences", "Settings", "System Preferences", "System Settings.app"],
             bundleID: "com.apple.systempreferences"),
+        App(name: "Hybrid", equivalentNames: ["系统 set.app"], bundleID: "example.hybrid"),
         App(name: "Calendar", alternates: ["iCal", "Calendar.app"], bundleID: "com.apple.iCal"),
         App(name: "Terminal", bundleID: "com.apple.Terminal"),
         App(name: "WhatsApp", bundleID: "net.whatsapp.WhatsApp"),
@@ -104,6 +111,7 @@ struct FuzzTest {
 
     static func main() {
         displayNameRanking()
+        equivalentNameSearch()
         fieldPriority()
         userAliases()
         alternateNameSanitizing()
@@ -113,6 +121,27 @@ struct FuzzTest {
 
         print(failures == 0 ? "\nALL PASSED" : "\n\(failures) FAILED")
         exit(failures == 0 ? 0 : 1)
+    }
+
+    // MARK: - Equivalent application names
+
+    static func equivalentNameSearch() {
+        print("\n# equivalent application names")
+
+        let localized = rank("系统设置")
+        check(
+            "localized name finds System Settings", localized.first == "System Settings", "got \(localized)")
+        check("the original display name still matches", rank("system settings").contains("System Settings"))
+        check(
+            "a localized name uses the display-name band",
+            score("系统设置", "System Settings")! >= 5 * SearchRelevance.bandStride)
+
+        check("a renamed hybrid name matches exactly", rank("系统 set").first == "Hybrid")
+        check("the Chinese part of a renamed name matches", rank("系统").contains("Hybrid"))
+        check("the Latin part of a renamed name matches", rank("set").contains("Hybrid"))
+        check(
+            "a query does not span separate localized and original names",
+            !rank("系统 settings").contains("System Settings"))
     }
 
     // MARK: - Display-name ranking (unchanged behavior)
@@ -302,20 +331,27 @@ struct FuzzTest {
         let sanitize = SearchFields.usableAlternateNames
         check(
             "empty and whitespace-only names are dropped",
-            sanitize(["", "   ", "\n"], "X", "X.app").isEmpty)
+            sanitize(["", "   ", "\n"], ["X", "X.app"]).isEmpty)
         check(
             "case-insensitive dedupe keeps the first spelling",
-            sanitize(["iBooks", "IBOOKS", "ibooks"], "Books", "Books.app") == ["iBooks"])
-        check("names are trimmed", sanitize(["  iCal  "], "Calendar", "Calendar.app") == ["iCal"])
+            sanitize(["iBooks", "IBOOKS", "ibooks"], ["Books", "Books.app"]) == ["iBooks"])
+        check("names are trimmed", sanitize(["  iCal  "], ["Calendar", "Calendar.app"]) == ["iCal"])
         check(
             "a name matching the file name but not the display name is still dropped",
-            sanitize(["Music.app"], "Apple Music", "Music.app").isEmpty)
+            sanitize(["Music.app"], ["Apple Music", "Music"]).isEmpty)
         check(
             "an ALL_CAPS name without an underscore is kept",
-            sanitize(["IINA"], "Media Player", "mpv.app") == ["IINA"])
+            sanitize(["IINA"], ["Media Player", "mpv"]) == ["IINA"])
         check(
             "a multi-word name with an underscore is kept",
-            sanitize(["My_App Pro"], "X", "X.app") == ["My_App Pro"])
+            sanitize(["My_App Pro"], ["X", "X.app"]) == ["My_App Pro"])
+
+        let equivalents = SearchFields.usableEquivalentNames
+        check(
+            "equivalent names strip extensions, dedupe, and exclude the display name",
+            equivalents(
+                [" System Settings.app ", "系统设置.app", "系统设置", " .app "],
+                "System Settings") == ["系统设置"])
     }
 
     // MARK: - Identifier fields
@@ -420,7 +456,7 @@ struct FuzzTest {
 
         let alphabet = Array("abcdefghijklmnopqrstuvwxyz .-_0123456789浏览器사파리🙂\u{200E}\u{0301}")
         let allText = apps.flatMap { app -> [String] in
-            [app.name] + app.alternates
+            [app.name] + app.equivalentNames + app.alternates
                 + [app.bundleID, app.executable, app.userAlias].compactMap { $0 }
         }
         var rng = Random(seed: 0x5EED_1234_ABCD_0001)

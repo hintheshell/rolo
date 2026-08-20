@@ -383,13 +383,15 @@ final class AppIndex {
                 let equivalentNames = SearchFields.usableEquivalentNames(
                     [metadata.displayName, url.lastPathComponent].compactMap { $0 },
                     displayName: name)
+                let names = [name] + equivalentNames
+                let alternateNames = SearchFields.usableAlternateNames(
+                    metadata.alternateNames, excluding: names)
                 result.append(
                     AppEntry(
                         id: url.path, name: name, url: url, bundleID: bundleID,
                         kind: .application,
-                        matchAliases: equivalentNames,
-                        alternateNames: SearchFields.usableAlternateNames(
-                            metadata.alternateNames, excluding: [name] + equivalentNames),
+                        matchAliases: equivalentNames + SearchFields.pinyinNames(for: names),
+                        alternateNames: alternateNames + SearchFields.pinyinNames(for: alternateNames),
                         // A binary named after the app adds nothing the display name lacks.
                         executableName: executable.flatMap {
                             $0.caseInsensitiveCompare(name) == .orderedSame ? nil : $0

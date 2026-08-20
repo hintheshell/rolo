@@ -207,6 +207,24 @@ extension SearchFields {
         }
     }
 
+    /// Mandarin aliases are derived once during the app scan, never while ranking.
+    static func pinyinNames(for names: [String]) -> [String] {
+        var seen = Set(names.map(appNameKey))
+        return names.compactMap { name in
+            guard name.unicodeScalars.contains(where: { $0.properties.isIdeographic }) else {
+                return nil
+            }
+            guard
+                let latin = name.applyingTransform(.mandarinToLatin, reverse: false),
+                let plain = latin.applyingTransform(.stripDiacritics, reverse: false)
+            else { return nil }
+            let pinyin = plain.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+            let key = appNameKey(pinyin)
+            guard !key.isEmpty, seen.insert(key).inserted else { return nil }
+            return pinyin
+        }
+    }
+
     /// Spotlight mixes junk in with the real aliases; indexing it makes `app` match all.
     static func usableAlternateNames(_ raw: [String], excluding names: [String]) -> [String] {
         let rejected = Set(names.map(appNameKey))

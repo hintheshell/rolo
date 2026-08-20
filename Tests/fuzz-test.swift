@@ -13,17 +13,18 @@ struct FuzzTest {
         var executable: String?
         var userAlias: String?
 
-        /// Mirrors AppEntry.searchFields, including the alternate-name sanitizing the scan applies.
+        /// Mirrors AppIndex's scan-time name sanitizing and pinyin derivation.
         var fields: SearchFields {
             let names =
                 [name]
                 + SearchFields.usableEquivalentNames(
                     equivalentNames, displayName: name)
+            let alternateNames = SearchFields.usableAlternateNames(
+                alternates, excluding: names)
             return SearchFields(
-                names: names,
+                names: names + SearchFields.pinyinNames(for: names),
                 userAlias: userAlias,
-                alternateNames: SearchFields.usableAlternateNames(
-                    alternates, excluding: names),
+                alternateNames: alternateNames + SearchFields.pinyinNames(for: alternateNames),
                 bundleID: bundleID, executableName: executable)
         }
     }
@@ -68,17 +69,20 @@ struct FuzzTest {
         // The band-6 overreach repro: `term` inside `iterm` must not beat Terminal's own prefix.
         App(name: "Kitty", userAlias: "iterm")
     ]
+    static let indexedFields = Dictionary(uniqueKeysWithValues: apps.map { ($0.name, $0.fields) })
 
     static func app(_ name: String) -> App { apps.first { $0.name == name }! }
 
     static func score(_ query: String, _ name: String) -> Int? {
-        SearchRelevance.score(query: query, fields: app(name).fields)
+        SearchRelevance.score(query: query, fields: indexedFields[name]!)
     }
 
     /// Mirrors AppIndex.rank: strongest field, plus the learned boost, then the alphabetical tiebreak.
     static func rank(_ query: String, boosts: [String: Int] = [:]) -> [String] {
         apps.compactMap { app -> (String, Int)? in
-            guard let s = SearchRelevance.score(query: query, fields: app.fields) else { return nil }
+            guard let s = SearchRelevance.score(query: query, fields: indexedFields[app.name]!) else {
+                return nil
+            }
             return (app.name, s + boosts[app.name, default: 0])
         }
         .sorted {
@@ -135,10 +139,17 @@ struct FuzzTest {
         check(
             "a localized name uses the display-name band",
             score("系统设置", "System Settings")! >= 5 * SearchRelevance.bandStride)
+        check("spaced pinyin finds System Settings", rank("xi tong she zhi").first == "System Settings")
+        check("word-grouped pinyin finds System Settings", rank("xitong shezhi").first == "System Settings")
+        check("compact pinyin finds System Settings", rank("xitongshezhi").first == "System Settings")
+        check(
+            "pinyin keeps the localized name's band",
+            score("xi tong she zhi", "System Settings")! >= 5 * SearchRelevance.bandStride)
 
         check("a renamed hybrid name matches exactly", rank("系统 set").first == "Hybrid")
         check("the Chinese part of a renamed name matches", rank("系统").contains("Hybrid"))
         check("the Latin part of a renamed name matches", rank("set").contains("Hybrid"))
+        check("mixed pinyin and Latin finds a renamed app", rank("xitong set").first == "Hybrid")
         check(
             "a query does not span separate localized and original names",
             !rank("系统 settings").contains("System Settings"))
@@ -352,6 +363,15 @@ struct FuzzTest {
             equivalents(
                 [" System Settings.app ", "系统设置.app", "系统设置", " .app "],
                 "System Settings") == ["系统设置"])
+
+        let pinyin = SearchFields.pinyinNames
+        check("Mandarin names lose tone marks", pinyin(["系统设置"]) == ["xi tong she zhi"])
+        check("mixed Latin text is preserved", pinyin(["系统 set"]) == ["xi tong set"])
+        check("names without Han characters add nothing", pinyin(["System Settings"]).isEmpty)
+        check(
+            "duplicate Mandarin readings are indexed once",
+            pinyin(["系统设置", "系统设置"]) == ["xi tong she zhi"])
+        check("alternate-name pinyin is searchable", rank("liulanqi").contains("Safari"))
     }
 
     // MARK: - Identifier fields
@@ -485,7 +505,7 @@ struct FuzzTest {
             }
 
             for app in apps {
-                let fields = app.fields
+                let fields = indexedFields[app.name]!
                 guard let score = SearchRelevance.score(query: query, fields: fields) else { continue }
                 matched += 1
 

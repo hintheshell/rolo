@@ -148,6 +148,13 @@ or has not caught up. The localized display name follows the launcher's existing
 an unindexed bundle keeps its other fields and simply loses that one name. Candidates stay separate, so
 a query never stitches words from the localized and bundle names together.
 
+Any equivalent name containing Han characters also contributes a tone-free Mandarin transliteration,
+generated once during the off-main scan with Foundation's current-system transliterator. Thus
+`系统设置` adds `xi tong she zhi`; the existing fuzzy matcher accepts `xi tong she zhi`,
+`xitong shezhi` and `xitongshezhi` without a separate tokenization rule. Mixed names retain their Latin
+text, so a disk rename such as `系统 set.app` also answers to `xitong set`. Spotlight alternate names
+receive the same derivation but remain in their lower relevance band.
+
 ### Alternate names
 
 `SpotlightNames` reads `kMDItemDisplayName` and `kMDItemAlternateNames` together. The latter supplies

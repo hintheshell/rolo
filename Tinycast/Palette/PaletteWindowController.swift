@@ -47,6 +47,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
             // Once per summon, and from `previousApp`, so the label names the paste target.
             core.palette.pasteTarget = PasteTarget(app: previousApp)
             let panel = ensurePanel()
+            core.palette.commandKeyHeld = NSEvent.modifierFlags.contains(.command)
             // Open disarmed: a pointer already over a row must not highlight it.
             core.palette.disarmHoverHighlight(pointerAt: NSEvent.mouseLocation)
             // Re-resolve the anchor now, then hold it so resizes never move the window.
@@ -70,6 +71,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
 
     func hide(restoreFocus: Bool) {
         panel?.orderOut(nil)
+        core.palette.commandKeyHeld = false
         core.inputSourceSwitcher.endSession()
         // Drop the anchor, so the next summon re-resolves for the screen in use then.
         anchor = nil

@@ -290,6 +290,18 @@ Most ⌘/⌃ chords reach SwiftUI's `onKeyPress` fine. Three kinds do not, and a
 Adding a chord that "does nothing" is almost always one of these three — check `sendEvent` before
 assuming the handler is wrong.
 
+## Modifier-held row hints
+
+`PalettePanel.sendEvent` mirrors the physical Command state into `PaletteState.commandKeyHeld` from
+flags-changed and key events. `PaletteWindowController.show` also samples the current flags because
+the summon chord can already be held before the panel receives events, and `hide` clears the state so
+a release delivered to the restored app cannot leave stale hints for the next summon. This stays
+inside the panel event stream; no global monitor or Accessibility event tap is needed.
+
+`RootPaletteView` exposes that state only to the clipboard screen and only while no popover menu is
+open. The screen then reveals 1–9 beside its first nine flat rows; activation indexes that same flat
+order, preserving the palette's selection invariant.
+
 ## Emacs navigation chords
 
 ⌃N/⌃P and ⌃F/⌃B navigate exactly as ↓/↑ and →/← do — on the emoji grid all four step the selection,

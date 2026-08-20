@@ -78,6 +78,16 @@ stale rows for a render or more, since the filter changes without the query movi
 of filtering after the fact: the FTS statement's `LIMIT 200` applies to the *unfiltered* matches, so
 a narrow filter over a broad query can show fewer rows than the history holds.
 
+## Command-number paste
+
+Holding Command reveals numbered keycaps on the first nine visible entries. The numbering comes from
+`ClipboardScreen.rows`, after search, type filtering and pin ordering; date and Pinned headers are
+display-only and never consume a number. **⌘1–⌘9 uses `ClipboardScreen.activate(at:)`**, the same paste
+path as Return, so focus restoration, promotion and the target app stay identical.
+
+The hints disappear on Command release and while a popover menu is open. The compact launcher's
+⌘1–⌘5 path is separate because that bar and the clipboard screen cannot be visible at the same time.
+
 ## Pinned entries
 
 A row's ⌘K Actions menu carries **Pin Entry / Unpin Entry** (⌘., since ⌘P opens the type filter),

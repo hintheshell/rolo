@@ -5,6 +5,7 @@ struct ClipboardScreen: PaletteScreen {
     let store: ClipboardStore
     let core: AppCore
     let vm: PaletteState
+    let showsCommandNumbers: Bool
     let openActions: () -> Void
     let scrollToFollow: () -> Void
 
@@ -97,6 +98,7 @@ struct ClipboardScreen: PaletteScreen {
                     results: rows,
                     selectedID: selected?.id,
                     scroll: scroll,
+                    showsCommandNumbers: showsCommandNumbers,
                     onSelect: { item in vm.selection = rows.firstIndex(of: item) ?? 0 },
                     onActivate: { activate(at: vm.selection) },
                     onActions: { item in

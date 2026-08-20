@@ -62,7 +62,8 @@ struct RootPaletteView: View {
                 session: fileSearch, core: core, vm: vm, openActions: openActions)
         case .clipboard:
             return ClipboardScreen(
-                store: store, core: core, vm: vm, openActions: openActions,
+                store: store, core: core, vm: vm,
+                showsCommandNumbers: vm.commandKeyHeld && !menuOpen, openActions: openActions,
                 scrollToFollow: { scroll = ScrollIntent(kind: .follow) })
         case .calculatorHistory:
             return CalculatorHistoryScreen(
@@ -281,6 +282,19 @@ struct RootPaletteView: View {
             case .app(let app): core.launcherCoordinator.launch(app)
             case .more: core.paletteCoordinator.expandFromCompact()
             }
+            return .handled
+        }
+        // ⌘1–⌘9 paste the matching visible clipboard row; section headers never take a slot.
+        .onKeyPress(keys: ["1", "2", "3", "4", "5", "6", "7", "8", "9"], phases: .down) {
+            press in
+            guard !isCollapsed, let clipboard = screen as? ClipboardScreen,
+                press.modifiers.contains(.command),
+                !press.modifiers.contains(.control), !press.modifiers.contains(.option),
+                !press.modifiers.contains(.shift),
+                let digit = press.key.character.wholeNumberValue
+            else { return .ignored }
+            guard !menuOpen else { return .handled }
+            clipboard.activate(at: digit - 1)
             return .handled
         }
         // These reach `onKeyPress` only while an inline argument field holds focus; the search

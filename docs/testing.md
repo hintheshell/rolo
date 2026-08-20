@@ -218,6 +218,9 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - ⌃X deletes the selected entry and ⌃⇧X clears the history, from the list and from an open ⌘K menu
 - ⌃⇧X asks first, through Tinycast's own dialog; Cancel and Esc both leave every entry in place
 - ↵ pastes into the previous app; ⌥↵ pastes without closing the palette
+- Holding Command reveals 1–9 on only the first nine visible rows; release hides every number
+- ⌘1–⌘9 paste those rows after search, filtering and pinning; section headers consume no number
+- An open popover suppresses Command-number paste, and the compact launcher's ⌘1–⌘5 still works
 - A copy from an excluded app (Settings ▸ Clipboard ▸ Disabled Applications) is **not** recorded
 - Password-manager copies are still not recorded
 

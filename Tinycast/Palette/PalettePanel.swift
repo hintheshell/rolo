@@ -84,6 +84,9 @@ final class PalettePanel: NSPanel {
     }
 
     override func sendEvent(_ event: NSEvent) {
+        if [.flagsChanged, .keyDown, .keyUp].contains(event.type) {
+            paletteState?.commandKeyHeld = event.modifierFlags.contains(.command)
+        }
         switch event.type {
         case .mouseMoved: paletteState?.notePointerMoved(to: NSEvent.mouseLocation)
         // Keys and scrolling both slide rows under the pointer without it choosing any of them.

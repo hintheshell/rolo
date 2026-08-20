@@ -36,6 +36,8 @@ final class PaletteState {
     @ObservationIgnored var searchFieldFrame: CGRect = .zero
     /// True while a footer menu is open. See docs/features/palette.md#menu-open-input-freeze.
     @ObservationIgnored var menuOpen = false { didSet { onMenuOpenChanged?(menuOpen) } }
+    /// True while Command is physically held, so clipboard rows can reveal transient shortcuts.
+    var commandKeyHeld = false
     /// Fired when `menuOpen` flips, so the panel can hide the caret without a focus swap.
     @ObservationIgnored var onMenuOpenChanged: ((Bool) -> Void)?
 

@@ -6,6 +6,7 @@ struct ClipboardList: View {
     let selectedID: ClipboardItem.ID?
     /// Changes only when the list should scroll, so mouse selection never yanks it.
     let scroll: ScrollIntent
+    let showsCommandNumbers: Bool
     let onSelect: (ClipboardItem) -> Void
     let onActivate: () -> Void
     let onActions: (ClipboardItem) -> Void
@@ -13,11 +14,11 @@ struct ClipboardList: View {
 
     private enum Row: Identifiable {
         case header(String)
-        case item(ClipboardItem)
+        case item(ClipboardItem, shortcutNumber: Int?)
         var id: String {
             switch self {
             case .header(let title): return "header-" + title
-            case .item(let item): return item.id.uuidString
+            case .item(let item, _): return item.id.uuidString
             }
         }
     }
@@ -31,13 +32,13 @@ struct ClipboardList: View {
     private var rows: [Row] {
         var rows: [Row] = []
         var currentTitle: String?
-        for item in results {
+        for (index, item) in results.enumerated() {
             let title = item.isPinned ? "Pinned" : DateBucket(for: item.createdAt).title
             if title != currentTitle {
                 rows.append(.header(title))
                 currentTitle = title
             }
-            rows.append(.item(item))
+            rows.append(.item(item, shortcutNumber: index < 9 ? index + 1 : nil))
         }
         return rows
     }
@@ -51,10 +52,11 @@ struct ClipboardList: View {
                         switch row {
                         case .header(let title):
                             SectionHeader(title: title, isFirst: row.id == rows.first?.id)
-                        case .item(let item):
+                        case .item(let item, let shortcutNumber):
                             ClipboardRow(
                                 item: item, selected: item.id == selectedID,
-                                imageURL: store.imageURL(for: item)
+                                imageURL: store.imageURL(for: item),
+                                shortcutNumber: showsCommandNumbers ? shortcutNumber : nil
                             )
                             .selectionFrame(item.id == selectedID)
                             .contentShape(Rectangle())
@@ -118,6 +120,7 @@ private struct ClipboardRow: View {
     let item: ClipboardItem
     let selected: Bool
     let imageURL: URL?
+    let shortcutNumber: Int?
     @State private var hovered = false
 
     /// Selection wins over hover when a row is both; otherwise hover shows its fainter layer.
@@ -135,6 +138,11 @@ private struct ClipboardRow: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
             Spacer(minLength: 0)
+            if let shortcutNumber {
+                KeyCapChip(text: String(shortcutNumber), style: .outline)
+                    .transition(.opacity)
+                    .accessibilityHidden(true)
+            }
         }
         .padding(.horizontal, Theme.Spacing.md)
         .padding(.vertical, Theme.Spacing.sm)
@@ -143,6 +151,7 @@ private struct ClipboardRow: View {
                 .fill(fill)
         )
         .armedHover($hovered)
+        .animation(.easeOut(duration: Theme.Duration.tooltip), value: shortcutNumber)
     }
 
     private var previewText: String {

@@ -68,7 +68,8 @@ disabled, and keystrokes are matched locally, never stored and never sent anywhe
 
 1. Open **Settings → General** and record a global shortcut to summon Tinycast.
 2. Press it anywhere → the palette floats in. Type to filter, **↵** to launch.
-3. **Tab** switches between Apps and Clipboard; **↑/↓** move, **Esc** dismisses.
+3. **Tab** switches between Apps and Clipboard; **↑/↓** move, **Esc** dismisses. Hold **⌘** in
+   Clipboard to reveal **1–9**, then press **⌘1–⌘9** to paste that entry directly.
 4. **Settings → Shortcuts** — search an app or custom command and record a global shortcut.
 5. **Settings → Snippets** — enable the feature, then create templates with expansion keywords.
 

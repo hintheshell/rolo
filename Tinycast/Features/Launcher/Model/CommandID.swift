@@ -37,8 +37,8 @@ enum CommandID: String, CaseIterable, Sendable {
         case .importSettings: return "Import Settings"
         case .importFromRaycast: return "Import from Raycast"
         case .settings: return "Settings"
-        case .about: return "About Tinycast"
-        case .quit: return "Quit Tinycast"
+        case .about: return "About Rolo"
+        case .quit: return "Quit Rolo"
         }
     }
 

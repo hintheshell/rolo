@@ -330,7 +330,7 @@ enum SystemActionRunner {
     private static func postKey(keyCode: CGKeyCode, flags: CGEventFlags) throws {
         guard Permissions.ensureAccessibility() else {
             throw SystemActionFailure(
-                "Allow Tinycast to control your Mac in Accessibility settings, then try again.",
+                "Allow Rolo to control your Mac in Accessibility settings, then try again.",
                 settings: .accessibility)
         }
         let source = CGEventSource(stateID: .combinedSessionState)
@@ -346,7 +346,7 @@ enum SystemActionRunner {
     private static func postMediaKey(_ key: Int32) throws {
         guard Permissions.ensureAccessibility() else {
             throw SystemActionFailure(
-                "Allow Tinycast to control your Mac in Accessibility settings, then try again.",
+                "Allow Rolo to control your Mac in Accessibility settings, then try again.",
                 settings: .accessibility)
         }
         // The same route as the keyboard's media keys; 0xA/0xB are down and up.
@@ -455,7 +455,7 @@ enum SystemActionRunner {
     private static func dismissNotifications() async throws -> Int {
         guard Permissions.ensureAccessibility() else {
             throw SystemActionFailure(
-                "Allow Tinycast to control your Mac in Accessibility settings, then try again.",
+                "Allow Rolo to control your Mac in Accessibility settings, then try again.",
                 settings: .accessibility)
         }
         guard
@@ -472,7 +472,7 @@ enum SystemActionRunner {
             guard let button = notifications.compactMap({ dismissControl(in: $0, depth: 0) }).first
             else {
                 throw SystemActionFailure(
-                    "This version of Notification Center exposes no dismiss control Tinycast can use.")
+                    "This version of Notification Center exposes no dismiss control Rolo can use.")
             }
             let result = AXUIElementPerformAction(button, kAXPressAction as CFString)
             guard result == .success || result == .invalidUIElement else {
@@ -562,7 +562,7 @@ enum SystemActionRunner {
             if getPower() == requested { return requested == 1 }
         }
         throw SystemActionFailure(
-            "Bluetooth did not change state. Check Tinycast’s Bluetooth permission.",
+            "Bluetooth did not change state. Check Rolo’s Bluetooth permission.",
             settings: .bluetooth)
     }
 
@@ -589,7 +589,7 @@ enum SystemActionRunner {
                 errorInfo[NSAppleScript.errorMessage] as? String ?? "Unknown automation error."
             if number == -1743 {
                 throw SystemActionFailure(
-                    "Allow Tinycast to control the requested app in Automation settings, then try again.",
+                    "Allow Rolo to control the requested app in Automation settings, then try again.",
                     settings: .automation)
             }
             throw SystemActionFailure(detail)

@@ -1,82 +1,72 @@
 # Signing
 
-Tinycast is signed with a **stable self-signed identity** called `Tinycast Self-Signed`. It's not an
-Apple Developer ID (there's no paid Apple account), but keeping the _same_ identity on every build is
-what makes macOS remember the Accessibility permission across rebuilds and updates — ad-hoc signing
-changes every build and macOS forgets the grant.
+Rolo uses a stable self-signed code-signing identity named `Rolo Self-Signed`. It is not an Apple
+Developer ID, but using the same identity for every build keeps the app's code requirement stable so
+macOS does not treat each update as an unrelated Accessibility client.
 
-You create this identity **once**. The same identity is used for:
+The same identity signs local builds and GitHub releases. Generate it once, import it into the login
+keychain, and upload the generated PKCS#12 bundle to the Rolo repository as encrypted Actions secrets.
 
-- **local dev builds** — so Accessibility persists while you develop (the Xcode project signs with it), and
-- **CI releases** — exported into two GitHub secrets the release workflow imports.
-
-## 1. Create the `Tinycast Self-Signed` identity (once)
-
-Run these in a terminal. They generate a self-signed code-signing certificate and import it into your
-login keychain:
+## Create and import the identity
 
 ```sh
-# Generate a self-signed code-signing cert (10-year, codeSigning use).
+ROLO_SIGNING_DIR="$(mktemp -d)"
+ROLO_KEYCHAIN="$(security login-keychain | tr -d '"')"
+ROLO_P12_PASSWORD="$(openssl rand -hex 32)"
+
 openssl req -x509 -newkey rsa:2048 -nodes -days 3650 \
-  -keyout /tmp/tc-key.pem -out /tmp/tc-cert.pem \
-  -subj "/CN=Tinycast Self-Signed" \
+  -keyout "$ROLO_SIGNING_DIR/key.pem" -out "$ROLO_SIGNING_DIR/cert.pem" \
+  -subj "/CN=Rolo Self-Signed" \
   -addext "basicConstraints=critical,CA:false" \
   -addext "keyUsage=critical,digitalSignature" \
   -addext "extendedKeyUsage=critical,codeSigning"
 
-# Bundle it as a .p12 (the non-empty password keeps `security import` happy).
-openssl pkcs12 -export -inkey /tmp/tc-key.pem -in /tmp/tc-cert.pem \
-  -name "Tinycast Self-Signed" -out /tmp/tc.p12 -passout pass:tinycast
+openssl pkcs12 -legacy -export \
+  -inkey "$ROLO_SIGNING_DIR/key.pem" -in "$ROLO_SIGNING_DIR/cert.pem" \
+  -name "Rolo Self-Signed" -out "$ROLO_SIGNING_DIR/rolo.p12" \
+  -passout "pass:$ROLO_P12_PASSWORD"
 
-# Import into the login keychain so codesign can use it without prompting.
-security import /tmp/tc.p12 -k ~/Library/Keychains/login.keychain-db \
-  -P tinycast -A -T /usr/bin/codesign
-
-rm -f /tmp/tc-key.pem /tmp/tc-cert.pem /tmp/tc.p12
+security import "$ROLO_SIGNING_DIR/rolo.p12" -k "$ROLO_KEYCHAIN" \
+  -P "$ROLO_P12_PASSWORD" -T /usr/bin/codesign
+security add-trusted-cert -r trustRoot -p codeSign -k "$ROLO_KEYCHAIN" \
+  "$ROLO_SIGNING_DIR/cert.pem"
+security find-identity -p codesigning "$ROLO_KEYCHAIN" | grep -F "Rolo Self-Signed"
 ```
 
-Verify it's there:
+## Configure GitHub release secrets
+
+Run this before deleting the temporary directory created above:
 
 ```sh
-security find-identity -p codesigning | grep "Tinycast Self-Signed"
+gh api --method PUT repos/hintheshell/rolo/environments/release
+base64 -i "$ROLO_SIGNING_DIR/rolo.p12" | tr -d '\n' \
+  | gh secret set SIGNING_P12_BASE64 --env release --repo hintheshell/rolo
+gh secret set SIGNING_P12_PASSWORD --env release --repo hintheshell/rolo \
+  --body "$ROLO_P12_PASSWORD"
 ```
 
-Now local builds (Xcode, VS Code F5, `xcodebuild`) sign with it, and you grant Accessibility once.
+The signing secrets are environment-scoped, not repository-scoped. Only a job that explicitly uses
+the `release` Environment receives them; `.github/workflows/release.yml` is the sole such job. The
+Environment's deployment branch policy permits only `main`. The private key ACL likewise names only
+`/usr/bin/codesign` and must not use `security import -A`.
 
-## 2. Generate the CI secrets
+After both secrets exist, delete the temporary directory securely enough for the local threat model
+and unset `ROLO_P12_PASSWORD`. Losing the certificate requires a new signing identity and users will
+need to grant Accessibility again; losing only the GitHub secrets does not, provided the original
+identity remains in the login keychain.
 
-The release workflow needs the same identity as two repo secrets. Export it, base64-encode it, and
-pick a password:
+## Homebrew tap deploy key
+
+The release workflow uses `HOMEBREW_TAP_DEPLOY_KEY`, an SSH deploy key that has write access only to
+`hintheshell/homebrew-rolo`. The matching public key belongs on that repository under
+**Settings → Deploy keys** with write access enabled. The private key is stored only as an Actions
+secret on `hintheshell/rolo`.
+
+## Quarantine
+
+macOS quarantines internet downloads and blocks a self-signed app as an unidentified developer. The
+Homebrew cask removes quarantine in `postflight`. A direct DMG installation needs this once:
 
 ```sh
-# Pick a random password for the exported bundle.
-P12_PASSWORD="$(openssl rand -base64 24)"; echo "password: $P12_PASSWORD"
-
-# Export the identity (approve the keychain dialog if asked) and base64-encode it.
-security export -t identities -f pkcs12 \
-  -k ~/Library/Keychains/login.keychain-db \
-  -P "$P12_PASSWORD" -o /tmp/signing.p12
-base64 -i /tmp/signing.p12 | tr -d '\n' > /tmp/signing.p12.base64
-rm -f /tmp/signing.p12
+xattr -dr com.apple.quarantine "/Applications/Rolo.app"
 ```
-
-Then set the two secrets on the repo (via `gh`, authed as the repo owner, or paste them in the GitHub
-UI under **Settings → Secrets and variables → Actions**):
-
-```sh
-gh secret set SIGNING_P12_BASE64   --repo abue-ammar/tinycast < /tmp/signing.p12.base64
-gh secret set SIGNING_P12_PASSWORD --repo abue-ammar/tinycast --body "$P12_PASSWORD"
-rm -f /tmp/signing.p12.base64   # holds your private key — delete it
-```
-
-If you ever lose the secrets, just re-run this section — as long as the `Tinycast Self-Signed`
-identity is still in your keychain, the exported identity is the same, so users are unaffected. If you
-lose the identity entirely, recreate it (step 1) and re-do this; existing users will re-grant
-Accessibility once on their next update, then it's stable again.
-
-## Quarantine (separate from signing)
-
-macOS quarantines anything downloaded from the internet, and Gatekeeper blocks even a correctly
-self-signed app with an "unverified developer" warning. The Homebrew cask runs
-`xattr -dr com.apple.quarantine` in `postflight`, so **brew users never touch it**. People who
-download the DMG directly clear it once by hand.

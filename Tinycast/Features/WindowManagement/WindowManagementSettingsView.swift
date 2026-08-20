@@ -10,7 +10,7 @@ struct WindowManagementSettingsView: View {
                 header: "Window Management",
                 enableTitle: "Enable window management",
                 enableSubtitle:
-                    "Moves the window you were last in, using the Accessibility permission Tinycast already uses to paste.",
+                    "Moves the window you were last in, using the Accessibility permission Rolo already uses to paste.",
                 launcherSubtitle: "Find the window commands in launcher search.",
                 isEnabled: $settings.windowManagementEnabled,
                 showsInLauncher: $settings.windowManagementShowInLauncher)

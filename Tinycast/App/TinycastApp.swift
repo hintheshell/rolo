@@ -6,7 +6,7 @@ struct TinycastApp: App {
     // `@AppStorage` republishes only on change, avoiding a scene ⇄ binding loop.
     @AppStorage(SettingsKey.showInMenuBar) private var showInMenuBar = true
 
-    // Channel-aware: "Tinycast", "Tinycast Dev", or "Tinycast Beta".
+    // Channel-aware: "Rolo" or "Rolo Dev".
     private let appName = Bundle.main.appDisplayName
 
     var body: some Scene {

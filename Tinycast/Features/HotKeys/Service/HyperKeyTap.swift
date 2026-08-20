@@ -73,10 +73,10 @@ private enum CapsLockRemap {
             try process.run()
             process.waitUntilExit()
             if process.terminationStatus != 0 {
-                NSLog("Tinycast: hidutil remap exited %d", process.terminationStatus)
+                NSLog("Rolo: hidutil remap exited %d", process.terminationStatus)
             }
         } catch {
-            NSLog("Tinycast: hidutil caps lock remap failed: %@", error.localizedDescription)
+            NSLog("Rolo: hidutil caps lock remap failed: %@", error.localizedDescription)
         }
     }
 }

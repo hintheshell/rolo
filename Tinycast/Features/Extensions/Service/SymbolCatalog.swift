@@ -7,7 +7,7 @@ struct SymbolCategory: Identifiable, Hashable, Sendable {
 
     static let suggested = SymbolCategory(id: "tinycast.suggested", title: "Suggested")
     static let all = SymbolCategory(id: "tinycast.all", title: "All Symbols")
-    static let bundled = SymbolCategory(id: "tinycast.bundled", title: "Tinycast")
+    static let bundled = SymbolCategory(id: "tinycast.bundled", title: "Rolo")
 }
 
 /// Read from `CoreGlyphs.bundle` at runtime, so the list matches the OS. A system resource, not API:

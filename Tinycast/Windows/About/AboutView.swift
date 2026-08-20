@@ -30,7 +30,7 @@ struct AboutView: View {
                         .padding(.vertical, Theme.Spacing.lg)
                 }
                 links
-                support
+                attribution
             }
             .formStyle(.grouped)
 
@@ -80,16 +80,16 @@ struct AboutView: View {
         }
     }
 
-    private var support: some View {
+    private var attribution: some View {
         Section {
             HStack(alignment: .top, spacing: Theme.Spacing.lg) {
-                Image(systemName: "bolt.fill")
+                Image(systemName: "arrow.triangle.branch")
                     .foregroundStyle(Theme.Colors.brand)
                 VStack(alignment: .leading, spacing: Theme.Spacing.xs) {
-                    Text("Buy Me Brave Origin")
+                    Text("Built from Tinycast")
                     Text(
-                        "If you enjoy my work and would like to support me or buy me Brave Origin,"
-                            + " feel free to reach out on Discord, X, or via email."
+                        "Rolo is a modified fork of Tinycast by Abue Ammar and remains available "
+                            + "under the AGPL-3.0 license."
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -100,7 +100,7 @@ struct AboutView: View {
     }
 
     private var footer: some View {
-        Text("© 2026 Abue Ammar · Released under AGPL-3.0")
+        Text("Rolo · Based on Tinycast · AGPL-3.0")
             .font(.caption2)
             .foregroundStyle(.tertiary)
     }
@@ -122,23 +122,17 @@ private struct AboutLink: Identifiable {
 
     static let all: [AboutLink] = [
         AboutLink(
-            id: "website", glyph: .symbol("globe"), title: "Website",
-            detail: "abue-ammar.github.io/tinycast",
-            url: URL(string: "https://abue-ammar.github.io/tinycast/")!),
+            id: "source", glyph: .brand("BrandGitHub"), title: "Rolo Source",
+            detail: "github.com/hintheshell/rolo",
+            url: URL(string: "https://github.com/hintheshell/rolo")!),
         AboutLink(
-            id: "github", glyph: .brand("BrandGitHub"), title: "GitHub",
+            id: "upstream", glyph: .symbol("arrow.up.right"), title: "Tinycast Upstream",
             detail: "github.com/abue-ammar/tinycast",
             url: URL(string: "https://github.com/abue-ammar/tinycast")!),
         AboutLink(
-            id: "discord", glyph: .brand("BrandDiscord"), title: "Discord",
-            detail: "Join the Tinycast community",
-            url: URL(string: "https://discord.gg/v2Eeb4QQy3")!),
-        AboutLink(
-            id: "x", glyph: .brand("BrandX"), title: "X", detail: "@abue_ammar",
-            url: URL(string: "https://x.com/abue_ammar")!),
-        AboutLink(
-            id: "email", glyph: .symbol("envelope"), title: "Email",
-            detail: "iabueammar@gmail.com", url: URL(string: "mailto:iabueammar@gmail.com")!)
+            id: "license", glyph: .symbol("doc.text"), title: "License",
+            detail: "AGPL-3.0",
+            url: URL(string: "https://github.com/hintheshell/rolo/blob/main/LICENSE")!)
     ]
 }
 

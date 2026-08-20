@@ -316,7 +316,7 @@ which a re-show that preserves state skips entirely. **`AppRow` observes that fl
 it any higher would attach it to `RootPaletteView`'s body and rebuild the whole palette on every ⌘
 press, where a row-level read re-runs only the handful of rows the `LazyVStack` has realized. The
 digit each row shows is carried on its `Row` case from the section build, so no row searches for its
-own position.
+own position. Clipboard rows reuse the same modifier state for their own independent nine slots.
 
 ## Reveal in Finder
 

@@ -115,7 +115,7 @@ xcodebuild build -project Tinycast.xcodeproj -scheme Tinycast -configuration Deb
   CODE_SIGNING_ALLOWED=NO
 xcodebuild build -project Tinycast.xcodeproj -scheme Tinycast -configuration Release \
   CODE_SIGNING_ALLOWED=NO
-find ~/Library/Developer/Xcode/DerivedData -name "Tinycast*.app" -maxdepth 6 -print -quit
+find ~/Library/Developer/Xcode/DerivedData -name "Rolo*.app" -maxdepth 6 -print -quit
 ```
 
 - Zero **new** warnings. Pre-existing ones are not your problem; new ones are.
@@ -189,7 +189,7 @@ There is no UI test suite, so this is it. Run the core sweep for any change that
 run the scoped section for whatever feature you touched. Budget about five minutes plus three per
 section.
 
-Run against the **Debug channel** (`Tinycast Dev.app`, `com.tinycast.app.dev`). It has its own prefs,
+Run against the **Debug channel** (`Rolo Dev.app`, `com.hintheshell.rolo.dev`). It has its own prefs,
 caches, TCC grants and login item, so this cannot disturb an installed copy.
 
 ### Core
@@ -210,7 +210,7 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - While a menu is open, typing does **not** change the query and the caret is hidden
 - Tab toggles launcher ↔ clipboard; bare Backspace on an empty query backs out of a sub-screen
 - Launching an app focuses it; escaping the palette returns focus to the app you came from
-- Paste from clipboard history lands in that app, not in Tinycast
+- Paste from clipboard history lands in that app, not in Rolo
 - No flash, flicker or reflow on open, and row metrics unchanged
 
 ### Clipboard
@@ -219,8 +219,11 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - Search is correct both under and over three characters
 - ⌘. pins and the highlight follows the row into Pinned; ⌘⌫ deletes; ⌘↵ copies without pasting
 - ⌃X deletes the selected entry and ⌃⇧X clears the history, from the list and from an open ⌘K menu
-- ⌃⇧X asks first, through Tinycast's own dialog; Cancel and Esc both leave every entry in place
+- ⌃⇧X asks first, through Rolo's own dialog; Cancel and Esc both leave every entry in place
 - ↵ pastes into the previous app; ⌥↵ pastes without closing the palette
+- Holding Command reveals 1–9 on only the first nine visible rows; release hides every number
+- ⌘1–⌘9 paste those rows after search, filtering and pinning; section headers consume no number
+- An open popover suppresses Command-number paste, and the compact launcher's digit slots still work
 - A copy from an excluded app (Settings ▸ Clipboard ▸ Disabled Applications) is **not** recorded
 - Password-manager copies are still not recorded
 
@@ -356,10 +359,10 @@ The realistic storage failure is a store that crashes on an absent file rather t
 Wipe the Dev channel and check that path directly:
 
 ```sh
-rm -rf ~/Library/Caches/com.tinycast.app.dev
-rm -rf "$HOME/Library/Application Support/com.tinycast.app.dev"
-defaults delete com.tinycast.app.dev 2>/dev/null || true
-tccutil reset Accessibility com.tinycast.app.dev 2>/dev/null || true
+rm -rf ~/Library/Caches/com.hintheshell.rolo.dev
+rm -rf ~/Library/Application\ Support/com.hintheshell.rolo.dev
+defaults delete com.hintheshell.rolo.dev 2>/dev/null || true
+tccutil reset Accessibility com.hintheshell.rolo.dev 2>/dev/null || true
 ```
 
 - Launches with every store directory absent — no crash, no hang; onboarding runs
@@ -369,5 +372,5 @@ tccutil reset Accessibility com.tinycast.app.dev 2>/dev/null || true
 - **Every setting shows its intended default.** Walk the panes: this is what catches a broken
   absence-versus-`false` read
 - Quit and relaunch: everything created above persisted
-- Nothing was written outside `com.tinycast.app.dev/`. Channel isolation is not negotiable — a Dev build
+- Nothing was written outside `com.hintheshell.rolo.dev/`. Channel isolation is not negotiable — a Dev build
   writing into the stable app's directory is a defect even though the data is disposable

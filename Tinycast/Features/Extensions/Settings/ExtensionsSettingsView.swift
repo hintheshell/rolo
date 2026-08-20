@@ -575,7 +575,7 @@ private struct ExtensionIconRow: View {
         SettingsCardRow(
             title: "Launcher icon",
             detail: appearance == nil
-                ? "The icon this extension ships." : "Replaced with a Tinycast icon."
+                ? "The icon this extension ships." : "Replaced with a Rolo icon."
         ) {
             HStack(spacing: Theme.Spacing.md) {
                 preview

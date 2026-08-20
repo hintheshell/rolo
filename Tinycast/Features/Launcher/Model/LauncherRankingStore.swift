@@ -156,7 +156,7 @@ final class LauncherRankingStore {
     }
 
     private static func defaultFileURL() -> URL {
-        let bundleID = Bundle.main.bundleIdentifier ?? "com.tinycast.app"
+        let bundleID = Bundle.main.bundleIdentifier ?? "com.hintheshell.rolo"
         let base = FileManager.default
             .urls(for: .cachesDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(bundleID, isDirectory: true)

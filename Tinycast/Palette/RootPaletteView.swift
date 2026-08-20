@@ -61,7 +61,8 @@ struct RootPaletteView: View {
                 session: fileSearch, core: core, vm: vm, openActions: openActions)
         case .clipboard:
             return ClipboardScreen(
-                store: store, core: core, vm: vm, openActions: openActions,
+                store: store, core: core, vm: vm, allowsCommandNumbers: !menuOpen,
+                openActions: openActions,
                 scrollToFollow: { scroll = ScrollIntent(kind: .follow) })
         case .calculatorHistory:
             return CalculatorHistoryScreen(
@@ -115,7 +116,7 @@ struct RootPaletteView: View {
     /// The bottom-left app menu content (About / Settings).
     private var appMenuContent: PopoverMenuContent {
         PopoverMenuContent(items: [
-            PopoverMenuItem(title: "About Tinycast", systemImage: "info.circle") {
+            PopoverMenuItem(title: "About Rolo", systemImage: "info.circle") {
                 core.settingsCoordinator.showAbout()
             },
             PopoverMenuItem(title: "Settings", systemImage: "gearshape", shortcut: "⌘,") {
@@ -274,6 +275,20 @@ struct RootPaletteView: View {
                 let launcher = screen as? LauncherScreen
             else { return .ignored }
             return launcher.launchFavorite(at: index) ? .handled : .ignored
+        }
+        // ⌘1–⌘9 paste visible clipboard rows; section headers never consume a slot.
+        .onKeyPress(keys: Self.clipboardSlotKeys, phases: .down) { press in
+            let pressed: EventModifiers = [.command, .control, .option, .shift].filter {
+                press.modifiers.contains($0)
+            }
+            .reduce(into: EventModifiers()) { $0.insert($1) }
+            guard pressed == .command, !isCollapsed,
+                let clipboard = screen as? ClipboardScreen,
+                let digit = press.key.character.wholeNumberValue
+            else { return .ignored }
+            guard !menuOpen else { return .handled }
+            clipboard.activate(at: digit - 1)
+            return .handled
         }
         // Repeat included: holding the key must keep stepping, as the bare-key form does by default.
         .onKeyPress(keys: [.downArrow], phases: [.down, .repeat]) { press in
@@ -655,6 +670,8 @@ struct RootPaletteView: View {
     /// SwiftUI wants a Set; built once so the palette isn't allocating one per render.
     private static let favoriteSlotKeys: Set<KeyEquivalent> =
         Set(FavoriteSlots.digits.map { KeyEquivalent($0) })
+    private static let clipboardSlotKeys: Set<KeyEquivalent> =
+        Set((1...9).map { KeyEquivalent(Character(String($0))) })
 
     /// Inset from the bottom corners, so the menu's own corner isn't clipped.
     private static let menuInset: CGFloat = 8

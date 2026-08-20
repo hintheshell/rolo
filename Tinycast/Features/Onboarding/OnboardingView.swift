@@ -78,7 +78,7 @@ struct OnboardingView: View {
 
     private var title: String {
         switch step {
-        case 0: "Welcome to Tinycast"
+        case 0: "Welcome to Rolo"
         case 1: "Enable Pasting"
         case 2: "Import from Raycast"
         default: "You're all set"
@@ -88,7 +88,7 @@ struct OnboardingView: View {
     private var subtitle: String {
         switch step {
         case 0: "Set a shortcut to summon the launcher from anywhere."
-        case 1: "Let Tinycast paste items back into the app you were using."
+        case 1: "Let Rolo paste items back into the app you were using."
         case 2: "Bring your shortcuts, favorites, and clipboard history along."
         default: readyMessage
         }
@@ -112,9 +112,9 @@ struct OnboardingView: View {
 
     private var readyMessage: String {
         if let caps = hotKeys.binding(for: .togglePalette)?.keycaps {
-            return "Press \(caps.joined()) anytime to start using Tinycast."
+            return "Press \(caps.joined()) anytime to start using Rolo."
         }
-        return "Tinycast is ready. Set a shortcut in Settings to summon it."
+        return "Rolo is ready. Set a shortcut in Settings to summon it."
     }
 
     // MARK: - Step content
@@ -135,7 +135,7 @@ struct OnboardingView: View {
             OnboardingCard {
                 OnboardingRow(
                     title: "App Launcher",
-                    subtitle: "Press this shortcut to open Tinycast.",
+                    subtitle: "Press this shortcut to open Rolo.",
                     systemImage: "magnifyingglass", tint: .blue
                 ) {
                     ShortcutRecorder(action: .togglePalette)
@@ -143,7 +143,7 @@ struct OnboardingView: View {
                 OnboardingDivider()
                 OnboardingRow(
                     title: "Launch at login",
-                    subtitle: "Start Tinycast automatically when you log in.",
+                    subtitle: "Start Rolo automatically when you log in.",
                     systemImage: "power", tint: .green
                 ) {
                     Toggle("", isOn: $settings.launchAtLogin)

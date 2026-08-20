@@ -14,7 +14,7 @@ enum ExtensionCommandMode: String, Sendable, Codable {
 
     var unsupportedReason: String? {
         self == .menuBar
-            ? "Menu bar commands aren't supported yet — Tinycast only runs view and no-view commands."
+            ? "Menu bar commands aren't supported yet — Rolo only runs view and no-view commands."
             : nil
     }
 }

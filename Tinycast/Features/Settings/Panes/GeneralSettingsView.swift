@@ -21,7 +21,7 @@ struct GeneralSettingsView: View {
         }
         return
             "Pressing \(settings.hyperKey.title) will trigger the left \(hyperGlyphs) modifier keys."
-            + " Hyper Key shortcuts are shown in Tinycast with ✦."
+            + " Hyper Key shortcuts are shown in Rolo with ✦."
     }
 
     var body: some View {
@@ -50,7 +50,8 @@ struct GeneralSettingsView: View {
                 Text("Search")
             } footer: {
                 Text(
-                    "Tinycast privately learns which results you choose for each query. Reset all learned choices to restore the default order."
+                    "Rolo privately learns which results you choose for each query. "
+                        + "Reset all learned choices to restore the default order."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -76,7 +77,7 @@ struct GeneralSettingsView: View {
                         Button("Grant Access…") { Permissions.openAccessibilitySettings() }
                     } label: {
                         Label(
-                            "Tinycast needs Accessibility access to remap keys.",
+                            "Rolo needs Accessibility access to remap keys.",
                             systemImage: "exclamationmark.triangle"
                         )
                         .foregroundStyle(.orange)
@@ -115,7 +116,7 @@ struct GeneralSettingsView: View {
                     }
                 } label: {
                     Text("Theme")
-                    Text("Match macOS, or pin Tinycast to Light or Dark.")
+                    Text("Match macOS, or pin Rolo to Light or Dark.")
                 }
                 Toggle(isOn: $settings.compactMode) {
                     Text("Compact mode")
@@ -147,11 +148,11 @@ struct GeneralSettingsView: View {
             Section {
                 Toggle(isOn: $settings.launchAtLogin) {
                     Text("Launch at login")
-                    Text("Start Tinycast automatically when you log in.")
+                    Text("Start Rolo automatically when you log in.")
                 }
                 Toggle(isOn: $showInMenuBar) {
                     Text("Show in menu bar")
-                    Text("Keep the Tinycast icon in the menu bar. Shortcuts still work when hidden.")
+                    Text("Keep the Rolo icon in the menu bar. Shortcuts still work when hidden.")
                 }
                 Picker(selection: $settings.popToRootTimeout) {
                     ForEach(PopToRootTimeout.allCases) { timeout in
@@ -188,7 +189,7 @@ struct GeneralSettingsView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Tinycast will relearn your preferred results as you use the launcher.")
+            Text("Rolo will relearn your preferred results as you use the launcher.")
         }
         .onAppear(perform: refreshInputSources)
         .onReceive(

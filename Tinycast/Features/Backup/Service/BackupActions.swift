@@ -36,7 +36,7 @@ enum BackupActions {
     }
 
     static func exportSettings(core: AppCore) async {
-        guard let url = chooseSaveLocation(named: "Tinycast-Settings") else { return }
+        guard let url = chooseSaveLocation(named: "Rolo-Settings") else { return }
         do {
             try SettingsBackup.gather(from: core).encoded().write(to: url, options: .atomic)
         } catch {

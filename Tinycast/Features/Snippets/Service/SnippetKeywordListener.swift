@@ -250,7 +250,7 @@ final class SnippetKeywordListener: HealthCheckable {
         guard tapController.install(listener: self) else {
             if !loggedTapFailure {
                 if logsTapFailures {
-                    NSLog("Tinycast: Failed to create snippet keyword event tap")
+                    NSLog("Rolo: Failed to create snippet keyword event tap")
                 }
                 loggedTapFailure = true
             }

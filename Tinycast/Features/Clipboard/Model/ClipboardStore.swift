@@ -161,7 +161,7 @@ final class ClipboardStore {
 
     /// Under Caches, history being regenerable; "Clear History" is the durable control.
     private static var defaultDirectory: URL {
-        let bundleID = Bundle.main.bundleIdentifier ?? "com.tinycast.app"
+        let bundleID = Bundle.main.bundleIdentifier ?? "com.hintheshell.rolo"
         return FileManager.default
             .urls(for: .cachesDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(bundleID, isDirectory: true)

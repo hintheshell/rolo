@@ -1,4 +1,8 @@
-# Tinycast documentation
+# Rolo documentation
+
+Rolo is maintained as a low-conflict fork of Tinycast. The Xcode project, target, source directory,
+and internal protocol identifiers deliberately retain the `Tinycast` name; the installed product,
+bundle identifiers, release artifacts, and user-facing copy use `Rolo`.
 
 Start with [`AGENTS.md`](../AGENTS.md) at the repo root — it is the short version, and it links here for
 anything that needs more than a line.

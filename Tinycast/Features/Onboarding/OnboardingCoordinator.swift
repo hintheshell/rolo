@@ -10,7 +10,7 @@ final class OnboardingCoordinator {
     init(core: AppCore) {
         self.core = core
         window = AppWindowController(
-            title: "Welcome to Tinycast", contentSize: OnboardingView.windowSize,
+            title: "Welcome to Rolo", contentSize: OnboardingView.windowSize,
             activation: core.activationPolicy)
     }
 

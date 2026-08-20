@@ -1,14 +1,7 @@
 name: Website
 
-# Builds the Next.js site in website/ and deploys it to GitHub Pages at
-# https://abue-ammar.github.io/tinycast/. Requires: repo Settings → Pages →
-# Source = "GitHub Actions" (one-time setup).
+# The inherited Tinycast website is not Rolo-branded yet, so deployment stays manual.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "website/**"
-      - ".github/workflows/website.yml"
   workflow_dispatch:
 
 permissions:

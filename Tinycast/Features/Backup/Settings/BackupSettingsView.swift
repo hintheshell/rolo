@@ -40,10 +40,10 @@ struct BackupSettingsView: View {
                     Button("Import…") { Task { await BackupActions.importSettings(core: core) } }
                 } label: {
                     Text("Import Settings")
-                    Text("Restore from a Tinycast backup. Only values in the file are changed.")
+                    Text("Restore from a Rolo backup. Only values in the file are changed.")
                 }
             } header: {
-                Text("Tinycast")
+                Text("Rolo")
             }
 
             Section {

@@ -50,6 +50,9 @@ the `release` Environment receives them; `.github/workflows/release.yml` is the 
 Environment's deployment branch policy permits only `main`. The private key ACL likewise names only
 `/usr/bin/codesign` and must not use `security import -A`.
 
+On GitHub's disposable macOS runner, the workflow trusts only the public certificate in the System
+trust domain. The private key remains in a temporary keychain and retains the codesign-only ACL.
+
 After both secrets exist, delete the temporary directory securely enough for the local threat model
 and unset `ROLO_P12_PASSWORD`. Losing the certificate requires a new signing identity and users will
 need to grant Accessibility again; losing only the GitHub secrets does not, provided the original

@@ -57,6 +57,25 @@ Consequences worth knowing:
 - The Hyper Key's Caps Lock remap is `hidutil` state, which is **system-wide, not per-bundle**: quitting
   one build clears the remap for the other, which then needs a rebind or a relaunch to restore it.
 
+### Replace the installed app locally
+
+When a change needs testing against the release channel's existing settings and permissions, replace
+the installed app directly instead of publishing a GitHub Release and updating the Homebrew tap:
+
+```sh
+./Scripts/install-local.sh
+```
+
+The script builds an incremental signed Release, verifies the bundle, quits the installed Rolo,
+replaces `/Applications/Rolo.app` with rollback protection and launches it again. It does not create a
+tag, Release or tap commit. Homebrew still records the last cask version, so a later `brew upgrade` or
+`brew reinstall` can replace the local build with an official one.
+
+The original `Rolo Self-Signed` identity must be in the login keychain. The script refuses a different
+identity because changing it can reset Accessibility and Input Monitoring grants. If that identity is
+irretrievably lost, rotate it once using [signing.md](signing.md), synchronize the release secrets and
+run `./Scripts/install-local.sh --allow-signing-change` for the first replacement only.
+
 ## Editor
 
 Xcode works out of the box and needs nothing here. Everything below is optional, and which editor you

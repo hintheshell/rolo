@@ -44,6 +44,7 @@ jobs:
           {
             echo "version=${VERSION}"
             echo "dmg_file=Rolo-${VERSION}.dmg"
+            echo "zip_file=Rolo-${VERSION}.zip"
           } >> "$GITHUB_OUTPUT"
 
       - name: Import signing certificate
@@ -81,29 +82,37 @@ jobs:
             MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             build
 
-      - name: Package DMG
+      # Two artifacts from one build: the DMG people download and the cask installs, and the zip
+      # the in-app updater installs — it expands with `ditto` instead of mounting a volume.
+      - name: Package DMG and ZIP
         env:
           DMG_FILE: ${{ steps.meta.outputs.dmg_file }}
+          ZIP_FILE: ${{ steps.meta.outputs.zip_file }}
         run: |
+          APP="$RUNNER_TEMP/DerivedData/Build/Products/Release/Rolo.app"
           STAGE="$(mktemp -d)"
-          cp -R "$RUNNER_TEMP/DerivedData/Build/Products/Release/Rolo.app" "$STAGE/"
+          cp -R "$APP" "$STAGE/"
           ln -s /Applications "$STAGE/Applications"
           mkdir -p dist
           diskutil image create from "$STAGE" --format UDZO --volumeName "Rolo" \
             "dist/${DMG_FILE}"
+          # `ditto -c -k --keepParent --sequesterRsrc` is the only zip that leaves the code
+          # signature verifiable; plain `zip` drops symlinks and breaks the seal.
+          ditto -c -k --keepParent --sequesterRsrc "$APP" "dist/${ZIP_FILE}"
 
       - uses: actions/upload-artifact@v7
         with:
           name: Rolo-${{ steps.meta.outputs.version }}
-          path: dist/${{ steps.meta.outputs.dmg_file }}
+          path: dist/
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.meta.outputs.version }}
           DMG_FILE: ${{ steps.meta.outputs.dmg_file }}
+          ZIP_FILE: ${{ steps.meta.outputs.zip_file }}
         run: |
-          gh release create "v${VERSION}" "dist/${DMG_FILE}" \
+          gh release create "v${VERSION}" "dist/${DMG_FILE}" "dist/${ZIP_FILE}" \
             --title "Rolo ${VERSION}" \
             --notes "**Version:** ${VERSION}
           **Bundle ID:** \`com.hintheshell.rolo\`

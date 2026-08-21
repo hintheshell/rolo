@@ -118,6 +118,8 @@ run volume-test            Tinycast/Features/SystemActions/Model/VolumeLevel.swi
 run window-command-test    Tinycast/Features/WindowManagement/WindowCommand.swift \
                            Tinycast/Features/WindowManagement/WindowLayout.swift \
                            Tinycast/Features/WindowManagement/WindowActionMemory.swift
+run space-gesture-test     Tinycast/Features/WindowManagement/WindowCommand.swift \
+                           Tinycast/Features/WindowManagement/SpaceGesture.swift
 run custom-command-test    Tinycast/Features/CustomCommands/Model/CustomCommand.swift \
                            Tinycast/Features/CustomCommands/Service/ShellCommandRunner.swift
 run uninstall-test         Tinycast/Features/Uninstall/Model/UninstallTarget.swift \
@@ -172,6 +174,7 @@ run ext-test               -parse-as-library \
                            Tinycast/Platform/Compression/Zlib.swift
 run settings-history-test  Tinycast/Features/Settings/SettingsTab.swift \
                            Tinycast/Features/Settings/SettingsHistory.swift
+run updates-test           Tinycast/Features/Updates/Model/*.swift
 
 if [ "$emit_db" -eq 1 ]; then
     printf ']\n' >> "$DB"

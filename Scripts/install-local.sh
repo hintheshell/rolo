@@ -89,7 +89,7 @@ if pgrep -f "$PROCESS_PATTERN" >/dev/null; then
     fi
 fi
 
-echo "▸ Replacing $TARGET…"
+echo "▸ Replacing ${TARGET}…"
 if [[ -e "$TARGET" || -L "$TARGET" ]]; then
     mv "$TARGET" "$BACKUP"
 fi
@@ -99,4 +99,4 @@ trap - EXIT
 
 open "$TARGET"
 echo "✓ Installed and launched $TARGET"
-echo "  Homebrew still tracks its last cask version; a future upgrade or reinstall can replace this build."
+echo "  A future Homebrew install or reinstall can replace this build."

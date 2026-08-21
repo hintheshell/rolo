@@ -19,6 +19,15 @@ CPU churn. Just SwiftUI + AppKit with zero dependencies. It's fast because there
 It also **runs Raycast extensions** — the real ones, rendered as native SwiftUI. No Node.js, no
 browser: JavaScriptCore ships with macOS, so that costs no extra binary size.
 
+## What Rolo adds over Tinycast
+
+- **Localized and renamed app search** — search by the macOS-localized name, a Finder-renamed
+  `.app` name or Mandarin pinyin while keeping the original app name in the result.
+- **Launcher number shortcuts** — hold **⌘** to reveal **1–9**, then press **⌘1–⌘9** to open the
+  matching result without moving the selection. Search and category results are numbered too.
+- **Clipboard number shortcuts** — hold **⌘** to number the first nine visible items after search,
+  filtering and pin ordering, then press **⌘1–⌘9** to paste one directly.
+
 ## Features
 
 - **App launcher** — fuzzy-search and launch anything, pin favorites, see what's running, quit an app
@@ -31,17 +40,6 @@ browser: JavaScriptCore ships with macOS, so that costs no extra binary size.
 - **Global hotkey** — one shortcut summons the palette from anywhere.
 - **Per-app hotkeys** — bind a key to an app; press it to toggle (focus/hide).
 - **Raycast extensions** — run the ones you already have natively, rendered as SwiftUI.
-
-## Differences from Tinycast
-
-Rolo stays close to upstream and currently adds:
-
-- **Localized app search** — find apps by localized or Finder-renamed names, including Mandarin
-  pinyin.
-- **Command-number shortcuts** — hold **⌘** to reveal **1–9**, then press **⌘1–⌘9** to open a
-  Launcher result or paste a Clipboard result.
-- **A separate release** — installs as `Rolo.app` with its own bundle ID and Homebrew cask,
-  targets macOS 26+, and can run alongside Tinycast.
 
 ## Install
 

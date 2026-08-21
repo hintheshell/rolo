@@ -195,19 +195,51 @@ enum SearchRelevance {
 }
 
 extension SearchFields {
+    /// Finder-visible and on-disk names are equivalent to the app's own display name.
+    static func usableEquivalentNames(_ raw: [String], displayName: String) -> [String] {
+        var seen = Set([appNameKey(displayName)])
+        return raw.compactMap { candidate in
+            let name = strippingAppExtension(
+                candidate.trimmingCharacters(in: .whitespacesAndNewlines))
+            let key = appNameKey(name)
+            guard !key.isEmpty, seen.insert(key).inserted else { return nil }
+            return name
+        }
+    }
+
+    /// Mandarin aliases are derived once during the app scan, never while ranking.
+    static func pinyinNames(for names: [String]) -> [String] {
+        var seen = Set(names.map(appNameKey))
+        return names.compactMap { name in
+            guard name.unicodeScalars.contains(where: { $0.properties.isIdeographic }) else {
+                return nil
+            }
+            guard
+                let latin = name.applyingTransform(.mandarinToLatin, reverse: false),
+                let plain = latin.applyingTransform(.stripDiacritics, reverse: false)
+            else { return nil }
+            let pinyin = plain.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+            let key = appNameKey(pinyin)
+            guard !key.isEmpty, seen.insert(key).inserted else { return nil }
+            return pinyin
+        }
+    }
+
     /// Spotlight mixes junk in with the real aliases; indexing it makes `app` match all.
-    static func usableAlternateNames(
-        _ raw: [String], displayName: String, fileName: String
-    ) -> [String] {
-        let rejected = Set([displayName, fileName].map(strippingAppExtension).map { $0.lowercased() })
+    static func usableAlternateNames(_ raw: [String], excluding names: [String]) -> [String] {
+        let rejected = Set(names.map(appNameKey))
         var seen = Set<String>()
         return raw.compactMap { candidate in
             let name = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !name.isEmpty, !isPlaceholder(name) else { return nil }
-            let key = strippingAppExtension(name).lowercased()
+            let key = appNameKey(name)
             guard !key.isEmpty, !rejected.contains(key), seen.insert(key).inserted else { return nil }
             return name
         }
+    }
+
+    private static func appNameKey(_ name: String) -> String {
+        strippingAppExtension(name.trimmingCharacters(in: .whitespacesAndNewlines)).lowercased()
     }
 
     private static func strippingAppExtension(_ name: String) -> String {

@@ -1,25 +1,35 @@
 import CoreServices
 import Foundation
 
-/// The aliases macOS knows an app by, which no Info.plist key exposes.
+/// The names macOS exposes for an app through its metadata index.
 enum SpotlightNames {
     /// `MDItem.h` exports no constant for this key, so it is named directly.
-    private static let attribute = "kMDItemAlternateNames"
+    private static let alternateNamesAttribute = "kMDItemAlternateNames"
+
+    struct Metadata: Sendable {
+        let displayName: String?
+        let alternateNames: [String]
+    }
 
     /// Empty when the path isn't indexed; Spotlight off is a thinner index, not a failure.
-    nonisolated static func alternateNames(for url: URL, displayName: String) -> [String] {
-        guard let item = MDItemCreateWithURL(nil, url as CFURL),
-            let raw = MDItemCopyAttribute(item, attribute as CFString) as? [String]
-        else { return [] }
-        return SearchFields.usableAlternateNames(
-            raw, displayName: displayName, fileName: url.lastPathComponent)
+    nonisolated static func metadata(for url: URL) -> Metadata {
+        guard let item = MDItemCreateWithURL(nil, url as CFURL) else {
+            return Metadata(displayName: nil, alternateNames: [])
+        }
+        let displayNameAttribute: CFString = kMDItemDisplayName
+        let alternateNamesAttribute = Self.alternateNamesAttribute as CFString
+        let attributes = [displayNameAttribute, alternateNamesAttribute] as CFArray
+        let values = MDItemCopyAttributes(item, attributes) as? [String: Any] ?? [:]
+        return Metadata(
+            displayName: values[displayNameAttribute as String] as? String,
+            alternateNames: values[Self.alternateNamesAttribute] as? [String] ?? [])
     }
 
     /// ~0.8 ms per bundle, so a pass re-reads only bundles whose modification date moved.
     struct Cache: Sendable {
         private struct Entry: Sendable {
             let modified: Date?
-            let names: [String]
+            let metadata: Metadata
         }
 
         private let previous: [String: Entry]
@@ -30,16 +40,16 @@ enum SpotlightNames {
         /// Only bundles this pass asks about carry forward, so uninstalled apps fall out.
         init(reusing cache: Cache) { previous = cache.current }
 
-        mutating func alternateNames(for url: URL, displayName: String) -> [String] {
+        mutating func metadata(for url: URL) -> Metadata {
             let modified = try? url.resourceValues(forKeys: [.contentModificationDateKey])
                 .contentModificationDate
             if let cached = previous[url.path], cached.modified == modified {
                 current[url.path] = cached
-                return cached.names
+                return cached.metadata
             }
-            let names = SpotlightNames.alternateNames(for: url, displayName: displayName)
-            current[url.path] = Entry(modified: modified, names: names)
-            return names
+            let metadata = SpotlightNames.metadata(for: url)
+            current[url.path] = Entry(modified: modified, metadata: metadata)
+            return metadata
         }
     }
 }

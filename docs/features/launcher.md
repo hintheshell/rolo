@@ -11,9 +11,9 @@ earliest scope wins).
   `LauncherList.rows`, in that order.
 - **`Model/SearchRelevance.swift` is Foundation-only and pure**, so `fuzz-test` compiles the shipped
   scorer. It owns both `FuzzyMatch` and the field bands.
-- **Searchable fields stay separate** — display name, Spotlight alternate names, bundle id and executable
-  name are never flattened into one string, because the field is what picks the band. A new searchable
-  field means a new `Band` case and a `consider` call, in priority order.
+- **Searchable fields stay separate** — equivalent names, Spotlight alternate names, bundle id and
+  executable name are never flattened into one string, because the field is what picks the band. A new
+  searchable field means a new `Band` case and a `consider` call, in priority order.
 - **`Model/SearchScopes.swift` and `Model/LauncherRankingStore.swift` are pure too** — the ranking store
   takes its clock via `now` and its path via `fileURL`, for `scopes-test` and `ranking-test`.
 
@@ -60,9 +60,9 @@ strongest one becomes the entry's base relevance:
 | Band | Field                                   | Match strength                                    |
 | ---- | --------------------------------------- | ------------------------------------------------- |
 | 6    | user alias (any entry kind)             | anchored literal — exact / prefix                 |
-| 5    | display name (plus a snippet's keyword) | literal — exact / prefix / word-start / substring |
+| 5    | display/equivalent name (plus a snippet's keyword) | literal — exact / prefix / word-start / substring |
 | 4    | Spotlight alternate names, plus a user alias's word-start / substring hits | literal |
-| 3    | display name                            | subsequence                                       |
+| 3    | display/equivalent name                 | subsequence                                       |
 | 2    | Spotlight alternate names               | subsequence                                       |
 | 1    | bundle identifier                       | literal only                                      |
 | 0    | executable name (`CFBundleExecutable`)  | literal only                                      |
@@ -135,23 +135,45 @@ Aliases ride along in a settings backup (`launcherAliases`), and deleting what a
 uninstalling an app, deleting a quicklink or custom command, uninstalling an extension — removes it
 with the entry's other per-entry preferences.
 
+### Equivalent application names
+
+The bundle's display name remains the row label and alphabetical sort key. Two more names join that
+same relevance band without changing what the row draws: Spotlight's localized `kMDItemDisplayName`
+and the `.app` bundle's on-disk file name. That makes `系统设置` find the row still labelled
+`System Settings`, and makes an app renamed to `系统 set.app` answer to the user's actual name. Each
+candidate is trimmed, stripped of `.app`, and deduplicated case-insensitively before indexing.
+
+The file name comes straight from the URL, so a manual rename remains searchable when Spotlight is off
+or has not caught up. The localized display name follows the launcher's existing Spotlight degradation:
+an unindexed bundle keeps its other fields and simply loses that one name. Candidates stay separate, so
+a query never stitches words from the localized and bundle names together.
+
+Any equivalent name containing Han characters also contributes a tone-free Mandarin transliteration,
+generated once during the off-main scan with Foundation's current-system transliterator. Thus
+`系统设置` adds `xi tong she zhi`; the existing fuzzy matcher accepts `xi tong she zhi`,
+`xitong shezhi` and `xitongshezhi` without a separate tokenization rule. Mixed names retain their Latin
+text, so a disk rename such as `系统 set.app` also answers to `xitong set`. Spotlight alternate names
+receive the same derivation but remain in their lower relevance band.
+
 ### Alternate names
 
-`SpotlightNames` reads `kMDItemAlternateNames` — the aliases macOS itself knows an app by, which no
-Info.plist key exposes: `iBooks` for Books, `iCal` for Calendar, `Address Book` for Contacts,
-`System Preferences` for System Settings, `browser` / `浏览器` / `사파리` for Safari. `MDItem.h` exports
-no constant for the attribute, so it is named directly.
+`SpotlightNames` reads `kMDItemDisplayName` and `kMDItemAlternateNames` together. The latter supplies
+aliases macOS itself knows an app by, which no Info.plist key exposes: `iBooks` for Books, `iCal` for
+Calendar, `Address Book` for Contacts, `System Preferences` for System Settings, and
+`browser` / `浏览器` / `사파리` for Safari. `MDItem.h` exports no constant for the alternate-name
+attribute, so it is named directly.
 
 Spotlight mixes junk in with the real aliases, and `SearchFields.usableAlternateNames` (pure, covered
 by the harness) drops it: every bundle lists its own `<Name>.app` file name, several system apps ship
 untranslated `ALTERNATE_NAME_1` placeholders, and some just repeat the display name. Indexing those
 would make `app` match the entire index.
 
-A Spotlight round trip costs ~0.8 ms per bundle cold — 76 ms over the default scopes — and the scan
-reruns on every launcher open, so `SpotlightNames.Cache` memoizes per bundle path and re-reads only
-when the bundle's modification date moves, taking later passes to ~0.2 ms. Each pass is seeded from
-the last and keeps only what it looked at, so uninstalled apps fall out instead of accumulating.
-`.appex` Settings panes carry no alternate names, so `SettingsPaneScanner` doesn't ask.
+A Spotlight round trip requests both attributes at once and costs ~0.8 ms per bundle cold — 76 ms over
+the default scopes. The scan reruns on every launcher open, so `SpotlightNames.Cache` memoizes per
+bundle path and re-reads only when the bundle's modification date moves, taking later passes to
+~0.2 ms. Each pass is seeded from the last and keeps only what it looked at, so uninstalled apps fall
+out instead of accumulating. `.appex` Settings panes resolve their own localized display names and
+carry no alternate names, so `SettingsPaneScanner` doesn't ask.
 
 Selecting a launcher result records every prefix of the submitted query, so choosing WhatsApp for
 `wha` also teaches `w` and `wh`. Direct hotkeys and empty-query favorites do not affect learned

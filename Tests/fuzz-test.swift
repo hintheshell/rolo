@@ -7,18 +7,24 @@ struct FuzzTest {
 
     struct App {
         let name: String
+        var equivalentNames: [String] = []
         var alternates: [String] = []
         var bundleID: String?
         var executable: String?
         var userAlias: String?
 
-        /// Mirrors AppEntry.searchFields, including the alternate-name sanitizing the scan applies.
+        /// Mirrors AppIndex's scan-time name sanitizing and pinyin derivation.
         var fields: SearchFields {
-            SearchFields(
-                names: [name],
+            let names =
+                [name]
+                + SearchFields.usableEquivalentNames(
+                    equivalentNames, displayName: name)
+            let alternateNames = SearchFields.usableAlternateNames(
+                alternates, excluding: names)
+            return SearchFields(
+                names: names + SearchFields.pinyinNames(for: names),
                 userAlias: userAlias,
-                alternateNames: SearchFields.usableAlternateNames(
-                    alternates, displayName: name, fileName: name + ".app"),
+                alternateNames: alternateNames + SearchFields.pinyinNames(for: alternateNames),
                 bundleID: bundleID, executableName: executable)
         }
     }
@@ -41,8 +47,10 @@ struct FuzzTest {
         App(name: "App Store", bundleID: "com.apple.AppStore"),
         App(
             name: "System Settings",
+            equivalentNames: ["系统设置.app"],
             alternates: ["Preferences", "Settings", "System Preferences", "System Settings.app"],
             bundleID: "com.apple.systempreferences"),
+        App(name: "Hybrid", equivalentNames: ["系统 set.app"], bundleID: "example.hybrid"),
         App(name: "Calendar", alternates: ["iCal", "Calendar.app"], bundleID: "com.apple.iCal"),
         App(name: "Terminal", bundleID: "com.apple.Terminal"),
         App(name: "WhatsApp", bundleID: "net.whatsapp.WhatsApp"),
@@ -61,17 +69,20 @@ struct FuzzTest {
         // The band-6 overreach repro: `term` inside `iterm` must not beat Terminal's own prefix.
         App(name: "Kitty", userAlias: "iterm")
     ]
+    static let indexedFields = Dictionary(uniqueKeysWithValues: apps.map { ($0.name, $0.fields) })
 
     static func app(_ name: String) -> App { apps.first { $0.name == name }! }
 
     static func score(_ query: String, _ name: String) -> Int? {
-        SearchRelevance.score(query: query, fields: app(name).fields)
+        SearchRelevance.score(query: query, fields: indexedFields[name]!)
     }
 
     /// Mirrors AppIndex.rank: strongest field, plus the learned boost, then the alphabetical tiebreak.
     static func rank(_ query: String, boosts: [String: Int] = [:]) -> [String] {
         apps.compactMap { app -> (String, Int)? in
-            guard let s = SearchRelevance.score(query: query, fields: app.fields) else { return nil }
+            guard let s = SearchRelevance.score(query: query, fields: indexedFields[app.name]!) else {
+                return nil
+            }
             return (app.name, s + boosts[app.name, default: 0])
         }
         .sorted {
@@ -104,6 +115,7 @@ struct FuzzTest {
 
     static func main() {
         displayNameRanking()
+        equivalentNameSearch()
         fieldPriority()
         userAliases()
         alternateNameSanitizing()
@@ -113,6 +125,34 @@ struct FuzzTest {
 
         print(failures == 0 ? "\nALL PASSED" : "\n\(failures) FAILED")
         exit(failures == 0 ? 0 : 1)
+    }
+
+    // MARK: - Equivalent application names
+
+    static func equivalentNameSearch() {
+        print("\n# equivalent application names")
+
+        let localized = rank("系统设置")
+        check(
+            "localized name finds System Settings", localized.first == "System Settings", "got \(localized)")
+        check("the original display name still matches", rank("system settings").contains("System Settings"))
+        check(
+            "a localized name uses the display-name band",
+            score("系统设置", "System Settings")! >= 5 * SearchRelevance.bandStride)
+        check("spaced pinyin finds System Settings", rank("xi tong she zhi").first == "System Settings")
+        check("word-grouped pinyin finds System Settings", rank("xitong shezhi").first == "System Settings")
+        check("compact pinyin finds System Settings", rank("xitongshezhi").first == "System Settings")
+        check(
+            "pinyin keeps the localized name's band",
+            score("xi tong she zhi", "System Settings")! >= 5 * SearchRelevance.bandStride)
+
+        check("a renamed hybrid name matches exactly", rank("系统 set").first == "Hybrid")
+        check("the Chinese part of a renamed name matches", rank("系统").contains("Hybrid"))
+        check("the Latin part of a renamed name matches", rank("set").contains("Hybrid"))
+        check("mixed pinyin and Latin finds a renamed app", rank("xitong set").first == "Hybrid")
+        check(
+            "a query does not span separate localized and original names",
+            !rank("系统 settings").contains("System Settings"))
     }
 
     // MARK: - Display-name ranking (unchanged behavior)
@@ -302,20 +342,36 @@ struct FuzzTest {
         let sanitize = SearchFields.usableAlternateNames
         check(
             "empty and whitespace-only names are dropped",
-            sanitize(["", "   ", "\n"], "X", "X.app").isEmpty)
+            sanitize(["", "   ", "\n"], ["X", "X.app"]).isEmpty)
         check(
             "case-insensitive dedupe keeps the first spelling",
-            sanitize(["iBooks", "IBOOKS", "ibooks"], "Books", "Books.app") == ["iBooks"])
-        check("names are trimmed", sanitize(["  iCal  "], "Calendar", "Calendar.app") == ["iCal"])
+            sanitize(["iBooks", "IBOOKS", "ibooks"], ["Books", "Books.app"]) == ["iBooks"])
+        check("names are trimmed", sanitize(["  iCal  "], ["Calendar", "Calendar.app"]) == ["iCal"])
         check(
             "a name matching the file name but not the display name is still dropped",
-            sanitize(["Music.app"], "Apple Music", "Music.app").isEmpty)
+            sanitize(["Music.app"], ["Apple Music", "Music"]).isEmpty)
         check(
             "an ALL_CAPS name without an underscore is kept",
-            sanitize(["IINA"], "Media Player", "mpv.app") == ["IINA"])
+            sanitize(["IINA"], ["Media Player", "mpv"]) == ["IINA"])
         check(
             "a multi-word name with an underscore is kept",
-            sanitize(["My_App Pro"], "X", "X.app") == ["My_App Pro"])
+            sanitize(["My_App Pro"], ["X", "X.app"]) == ["My_App Pro"])
+
+        let equivalents = SearchFields.usableEquivalentNames
+        check(
+            "equivalent names strip extensions, dedupe, and exclude the display name",
+            equivalents(
+                [" System Settings.app ", "系统设置.app", "系统设置", " .app "],
+                "System Settings") == ["系统设置"])
+
+        let pinyin = SearchFields.pinyinNames
+        check("Mandarin names lose tone marks", pinyin(["系统设置"]) == ["xi tong she zhi"])
+        check("mixed Latin text is preserved", pinyin(["系统 set"]) == ["xi tong set"])
+        check("names without Han characters add nothing", pinyin(["System Settings"]).isEmpty)
+        check(
+            "duplicate Mandarin readings are indexed once",
+            pinyin(["系统设置", "系统设置"]) == ["xi tong she zhi"])
+        check("alternate-name pinyin is searchable", rank("liulanqi").contains("Safari"))
     }
 
     // MARK: - Identifier fields
@@ -420,7 +476,7 @@ struct FuzzTest {
 
         let alphabet = Array("abcdefghijklmnopqrstuvwxyz .-_0123456789浏览器사파리🙂\u{200E}\u{0301}")
         let allText = apps.flatMap { app -> [String] in
-            [app.name] + app.alternates
+            [app.name] + app.equivalentNames + app.alternates
                 + [app.bundleID, app.executable, app.userAlias].compactMap { $0 }
         }
         var rng = Random(seed: 0x5EED_1234_ABCD_0001)
@@ -449,7 +505,7 @@ struct FuzzTest {
             }
 
             for app in apps {
-                let fields = app.fields
+                let fields = indexedFields[app.name]!
                 guard let score = SearchRelevance.score(query: query, fields: fields) else { continue }
                 matched += 1
 

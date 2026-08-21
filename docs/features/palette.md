@@ -292,9 +292,10 @@ assuming the handler is wrong.
 
 `PalettePanel.sendEvent` mirrors the physical Command state into `PaletteState.commandHeld` from
 flags-changed events, and `resignKey` clears it because the restored app may receive the release.
-Launcher favorite rows and clipboard rows observe that state directly, so pressing Command only
-re-renders the realized rows. Clipboard numbers follow the screen's flat result order; an open menu
-hides them and consumes Command-number without activating a background row.
+Launcher result rows and clipboard rows observe that state directly, so pressing Command only
+re-renders the realized rows. Their numbers follow the current result order; an open menu hides them
+and consumes Command-number without activating a background row. Compact Launcher mode retains its
+persistent favorite slots instead.
 
 ## Emacs navigation chords
 

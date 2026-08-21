@@ -40,7 +40,7 @@ struct RootPaletteView: View {
             return LauncherScreen(
                 appIndex: appIndex, favorites: favorites, visibility: visibility,
                 currencyRates: currencyRates, core: core, vm: vm, running: selectionIsRunning,
-                openActions: openActions,
+                allowsCommandNumbers: !menuOpen, openActions: openActions,
                 scrollToFollow: { scroll = ScrollIntent(kind: .follow) })
         case .uninstall:
             return UninstallScreen(
@@ -267,14 +267,28 @@ struct RootPaletteView: View {
         .onChange(of: core.paletteCoordinator.paletteIsCollapsed) {
             core.paletteCoordinator.syncPaletteSize()
         }
-        // ⌘1–⌘9/⌘0 launch favorites by position, in both palette sizes.
+        // Expanded addresses visible results; compact retains its persistent favorite slots.
         .onKeyPress(keys: Self.favoriteSlotKeys, phases: .down) { press in
-            guard press.modifiers.contains(.command),
-                !isCollapsed || settings.showFavoritesInCompactMode,
-                let index = FavoriteSlots.index(for: press.key.character),
-                let launcher = screen as? LauncherScreen
+            let pressed: EventModifiers = [.command, .control, .option, .shift].filter {
+                press.modifiers.contains($0)
+            }
+            .reduce(into: EventModifiers()) { $0.insert($1) }
+            guard pressed == .command, let launcher = screen as? LauncherScreen
             else { return .ignored }
-            return launcher.launchFavorite(at: index) ? .handled : .ignored
+            if isCollapsed {
+                guard settings.showFavoritesInCompactMode,
+                    let index = FavoriteSlots.index(for: press.key.character)
+                else { return .ignored }
+                return launcher.launchFavorite(at: index) ? .handled : .ignored
+            }
+            guard !menuOpen else { return .handled }
+            if press.key.character == "0" {
+                return launcher.launchFavorite(at: 9) ? .handled : .ignored
+            }
+            guard let target = launcher.commandNumberSelection(for: press.key.character) else {
+                return .ignored
+            }
+            return activate(target, in: launcher) ? .handled : .ignored
         }
         // ⌘1–⌘9 paste visible clipboard rows; section headers never consume a slot.
         .onKeyPress(keys: Self.clipboardSlotKeys, phases: .down) { press in
@@ -774,16 +788,27 @@ struct RootPaletteView: View {
     }
 
     private func activateSelection() {
-        // Nothing is visibly selected when collapsed, so launch via ⌘1–⌘5 or typing.
+        // Nothing is visibly selected when collapsed, so use a favorite shortcut or type first.
         guard !isCollapsed else { return }
+        let screen = screen
+        _ = activate(selection(in: screen), in: screen)
+    }
+
+    /// One primary-action path for Return, the footer and command-number result shortcuts.
+    private func activate(_ selection: Int, in screen: any PaletteScreen) -> Bool {
+        guard screen.hasPrimaryAction(at: selection) else { return false }
+        vm.selection = selection
+        scroll = ScrollIntent(kind: .follow)
         // An unfilled field blocks the launch; focus it instead of acting on a half-typed row.
-        if let incomplete = headerAccessory?.firstIncompleteField {
+        if let incomplete = screen.headerAccessory(at: selection, focus: $argumentFocused)?
+            .firstIncompleteField
+        {
             argumentFocused = incomplete
             searchFocused = false
-            return
+            return true
         }
-        let screen = screen
-        screen.activate(at: selection(in: screen))
+        screen.activate(at: selection)
+        return true
     }
 
 }

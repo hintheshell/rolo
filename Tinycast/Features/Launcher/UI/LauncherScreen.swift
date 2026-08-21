@@ -7,6 +7,7 @@ struct LauncherScreen: PaletteScreen {
     let visibility: VisibilityStore
     let core: AppCore
     let vm: PaletteState
+    let allowsCommandNumbers: Bool
     /// Sampled by `openActions`, so the Quit row can't appear or vanish while the menu is up.
     let running: Bool
     let openActions: () -> Void
@@ -28,7 +29,8 @@ struct LauncherScreen: PaletteScreen {
     init(
         appIndex: AppIndex, favorites: FavoritesStore, visibility: VisibilityStore,
         currencyRates: CurrencyRateStore, core: AppCore, vm: PaletteState, running: Bool,
-        openActions: @escaping () -> Void, scrollToFollow: @escaping () -> Void
+        allowsCommandNumbers: Bool, openActions: @escaping () -> Void,
+        scrollToFollow: @escaping () -> Void
     ) {
         self.appIndex = appIndex
         self.favorites = favorites
@@ -36,6 +38,7 @@ struct LauncherScreen: PaletteScreen {
         self.core = core
         self.vm = vm
         self.running = running
+        self.allowsCommandNumbers = allowsCommandNumbers
         self.openActions = openActions
         self.scrollToFollow = scrollToFollow
 
@@ -185,11 +188,19 @@ struct LauncherScreen: PaletteScreen {
         return true
     }
 
-    /// ⌘1–⌘9/⌘0 — launch a favorite by position, in either palette size.
+    /// Compact digits launch favorites; expanded keeps ⌘0 for the tenth favorite.
     func launchFavorite(at index: Int) -> Bool {
         guard let app = pinnedFavorites.dropFirst(index).first else { return false }
         core.launcherCoordinator.launch(app)
         return true
+    }
+
+    /// The expanded result a 1…9 chord addresses; the calculator card does not consume a slot.
+    func commandNumberSelection(for digit: Character) -> Int? {
+        guard let index = FavoriteSlots.resultIndex(for: digit), results.indices.contains(index) else {
+            return nil
+        }
+        return index + (calc == nil ? 0 : 1)
     }
 
     /// The favorites the chords address and the compact strip draws from. Empty while a query is
@@ -273,6 +284,7 @@ struct LauncherScreen: PaletteScreen {
             selectedID: entry(at: selection)?.id,
             favoriteCount: favoriteCount,
             showSections: showSections,
+            allowsCommandNumbers: allowsCommandNumbers,
             scroll: scroll,
             calc: calc,
             calcSelected: isCardSelected(selection),

@@ -5,6 +5,7 @@ struct LauncherList: View {
     let selectedID: AppEntry.ID?
     let favoriteCount: Int
     let showSections: Bool
+    let allowsCommandNumbers: Bool
     /// Changes only when the list should scroll, so mouse selection never yanks it.
     let scroll: ScrollIntent
     /// The inline answer, at flat index 0 when present; needs a non-empty query.
@@ -45,18 +46,20 @@ struct LauncherList: View {
         if let calc { calcRows = [.header("Calculator"), .calc(calc)] }
         guard showSections else {
             guard !results.isEmpty else { return calcRows }
-            return calcRows + [.header("Results")] + results.map { .app($0, slot: nil) }
+            return calcRows + [.header("Results")]
+                + results.enumerated().map { .app($1, slot: resultSlot(at: $0)) }
         }
         var rows: [Row] = calcRows
         let favorites = results.prefix(favoriteCount)
-        let rest = results.dropFirst(favoriteCount)
-        var grouped: [AppEntry.Kind: [AppEntry]] = [:]
-        for app in rest { grouped[app.kind, default: []].append(app) }
+        var grouped: [AppEntry.Kind: [(index: Int, app: AppEntry)]] = [:]
+        for (index, app) in results.enumerated().dropFirst(favoriteCount) {
+            grouped[app.kind, default: []].append((index, app))
+        }
         if !favorites.isEmpty {
             rows.append(.header("Favorites"))
             rows.append(
                 contentsOf: favorites.enumerated().map {
-                    .app($1, slot: FavoriteSlots.digit(at: $0))
+                    .app($1, slot: favoriteSlot(at: $0))
                 })
         }
         // Publication order, so rows match the flat index.
@@ -67,7 +70,7 @@ struct LauncherList: View {
         for kind in kinds {
             guard let group = grouped[kind], !group.isEmpty else { continue }
             rows.append(.header(kind.descriptor.sectionTitle))
-            rows.append(contentsOf: group.map { .app($0, slot: nil) })
+            rows.append(contentsOf: group.map { .app($0.app, slot: resultSlot(at: $0.index)) })
         }
         // A kind missing from `kinds` doesn't just hide its rows — every row after it in the flat
         // index would then activate its neighbour. Cheap to assert, silent and confusing to debug.
@@ -76,6 +79,15 @@ struct LauncherList: View {
             "kind missing from the launcher's section order: "
                 + grouped.keys.filter { !kinds.contains($0) }.map(\.rawValue).joined(separator: ", "))
         return rows
+    }
+
+    private func resultSlot(at index: Int) -> Character? {
+        allowsCommandNumbers ? FavoriteSlots.resultDigit(at: index) : nil
+    }
+
+    private func favoriteSlot(at index: Int) -> Character? {
+        guard allowsCommandNumbers else { return nil }
+        return FavoriteSlots.resultDigit(at: index) ?? FavoriteSlots.digit(at: index)
     }
 
     var body: some View {
@@ -133,7 +145,7 @@ private struct AppRow: View {
     let app: AppEntry
     let selected: Bool
     let running: Bool
-    /// This row's ⌘-digit, or nil for a row no chord launches.
+    /// This row's ⌘-digit, or nil when it has no visible command-number shortcut.
     let slot: Character?
     /// Observed so a hotkey set/cleared in Settings re-renders the row's keycaps immediately.
     @Environment(HotKeyManager.self) private var hotKeys

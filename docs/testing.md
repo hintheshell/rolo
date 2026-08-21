@@ -234,6 +234,9 @@ caches, TCC grants and login item, so this cannot disturb an installed copy.
 - Icons render with no placeholder flash on reopen, and Settings ▸ Applications scrolls without hitching
 - An app removed since the last open drops out after a reopen
 - Learned ranking still surfaces your habitual result for a short query
+- Holding Command reveals 1–9 on the first nine launcher entries; ⌘1–⌘9 opens the matching entry
+  after searching, and an inline calculator card does not consume a number
+- An open popover suppresses Launcher command-number activation; compact mode keeps favorite slots
 
 ### Hotkeys
 

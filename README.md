@@ -32,6 +32,17 @@ browser: JavaScriptCore ships with macOS, so that costs no extra binary size.
 - **Per-app hotkeys** — bind a key to an app; press it to toggle (focus/hide).
 - **Raycast extensions** — run the ones you already have natively, rendered as SwiftUI.
 
+## Differences from Tinycast
+
+Rolo stays close to upstream and currently adds:
+
+- **Localized app search** — find apps by localized or Finder-renamed names, including Mandarin
+  pinyin.
+- **Command-number shortcuts** — hold **⌘** to reveal **1–9**, then press **⌘1–⌘9** to open a
+  Launcher result or paste a Clipboard result.
+- **A separate release** — installs as `Rolo.app` with its own bundle ID and Homebrew cask,
+  targets macOS 26+, and can run alongside Tinycast.
+
 ## Install
 
 ```sh

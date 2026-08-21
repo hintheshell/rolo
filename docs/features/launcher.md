@@ -107,9 +107,10 @@ listing, so the app appears under Applications above the panes. Since slice orde
 flat selection. Visibility still applies downstream, and no `limit` does, matching the empty query.
 
 `LauncherScreen` therefore separates the two jobs the empty query used to do at once: `showSections`
-draws the headers, `pinsFavorites` pins the Favorites prefix and hands out the ⌘-digit slots. A category
-listing takes the first only. Opening a row from one also records nothing in `LauncherRankingStore` — a
-category word is not a search for the row that ran, and learning it would rank that row under `s`.
+draws the headers, while `pinsFavorites` only pins the Favorites prefix. Digit numbers come from the
+current result indices independently, so a category listing remains numbered without gaining a
+Favorites section. Opening a row from one records nothing in `LauncherRankingStore` — a category word
+is not a search for the row that ran, and learning it would rank that row under `s`.
 
 ### User aliases
 
@@ -320,25 +321,21 @@ across the list — the top of Favorites on add, the neighbour above the one tha
 
 ### ⌘-digit slots
 
-`FavoriteSlots` (`Launcher/Model/FavoriteSlots.swift`) is the whole rule: **⌘1…⌘9 then ⌘0 for the
-tenth**, ten digit keys being the physical ceiling — there is no ⌘10. The eleventh favorite is still
-listed and reorderable, and simply has no chord and no number. Three places read that table — the key
-handler, the row's number, the compact tooltip — so none of them can invent an eleventh slot.
+In the expanded launcher, **⌘1…⌘9 activates the first nine launcher entries in the current order**.
+That includes an empty root, a typed search and a category listing; the calculator card does not consume
+a number. Holding ⌘ replaces each numbered row's kind label with its chord. An open menu hides the hints
+and consumes the chords so a background row cannot launch.
 
-Both palette sizes serve the chords from the same prefix, because `paletteIsCollapsed` already
-requires an empty query: **compact implies empty implies `favoriteCount` is the pinned prefix**. That
-is why `LauncherScreen.pinnedFavorites` feeds the strip, the chords and the numbered rows alike,
-rather than the compact bar re-deriving an empty-query order of its own. In compact the strip draws
+Compact mode keeps persistent favorite slots: **⌘1…⌘9 then ⌘0 for the tenth**. Compact implies an
+empty query, so `LauncherScreen.pinnedFavorites` feeds both the strip and its chords. The strip draws
 the first five; ⌘6–⌘0 still launch favorites it has no room for, and the "…" is a button after them
-rather than a slot, so no favorite loses its digit to the overflow.
+rather than a slot, so no favorite loses its digit to the overflow. Expanded mode retains ⌘0 for the
+tenth favorite but uses 1…9 for the current result order.
 
-Holding ⌘ swaps each numbered row's kind label for its chord. `PalettePanel` publishes the modifier
-into `PaletteState.commandHeld` from `.flagsChanged` and clears it in `resignKey` — not in `prepare`,
-which a re-show that preserves state skips entirely. **`AppRow` observes that flag itself**: reading
-it any higher would attach it to `RootPaletteView`'s body and rebuild the whole palette on every ⌘
-press, where a row-level read re-runs only the handful of rows the `LazyVStack` has realized. The
-digit each row shows is carried on its `Row` case from the section build, so no row searches for its
-own position. Clipboard rows reuse the same modifier state for their own independent nine slots.
+`FavoriteSlots` owns both digit tables, and the handler and rows read the same mapping. `PalettePanel`
+publishes the modifier into `PaletteState.commandHeld` from `.flagsChanged` and clears it in
+`resignKey`. **`AppRow` observes that flag itself**, so a Command press re-runs only the handful of rows
+the `LazyVStack` realized. Clipboard rows reuse the same modifier state for their independent slots.
 
 ## Reveal in Finder
 

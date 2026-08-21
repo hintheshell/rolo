@@ -130,6 +130,7 @@ jobs:
 
       - name: Update Homebrew cask
         env:
+          GH_TOKEN: ${{ github.token }}
           TAP_DEPLOY_KEY: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
           VERSION: ${{ steps.meta.outputs.version }}
           DMG_FILE: ${{ steps.meta.outputs.dmg_file }}
@@ -142,8 +143,14 @@ jobs:
           KNOWN_HOSTS="$RUNNER_TEMP/github-known-hosts"
           printf '%s\n' "$TAP_DEPLOY_KEY" > "$KEY_FILE"
           chmod 600 "$KEY_FILE"
-          curl -fsSL https://api.github.com/meta \
-            | jq -r '.ssh_keys[] | "github.com " + .' > "$KNOWN_HOSTS"
+          META_FILE="$RUNNER_TEMP/github-meta.json"
+          curl -fsSL --retry 3 --retry-all-errors \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/meta -o "$META_FILE"
+          jq -e '.ssh_keys | length > 0' "$META_FILE" >/dev/null
+          jq -r '.ssh_keys[] | "github.com " + .' "$META_FILE" > "$KNOWN_HOSTS"
           export GIT_SSH_COMMAND="ssh -i $KEY_FILE -o IdentitiesOnly=yes -o UserKnownHostsFile=$KNOWN_HOSTS"
           SHA="$(shasum -a 256 "dist/${DMG_FILE}" | awk '{print $1}')"
           git clone --depth 1 git@github.com:hintheshell/homebrew-rolo.git tap
